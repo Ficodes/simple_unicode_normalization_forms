@@ -22,7 +22,7 @@ fn custom_normalization(
     let mut result = String::with_capacity(str.len());
     let mut previous_whitespace = false;
     for c in str.chars() {
-        custom_character_normalization(
+        previous_whitespace = custom_character_normalization(
             &mut result,
             c,
             &allow_chars,
@@ -30,7 +30,6 @@ fn custom_normalization(
             previous_whitespace,
             remove_emojis,
         );
-        previous_whitespace = c.is_whitespace();
     }
     result.nfc().collect::<String>()
 }
@@ -42,30 +41,48 @@ fn custom_character_normalization(
     collapse_whitespace: bool,
     previous_whitespace: bool,
     remove_emojis: bool,
-) {
+) -> bool {
     if allow_chars.contains(&c) {
-        str.push(c)
+        str.push(c);
+        return false;
     } else if c.is_whitespace() {
-        if collapse_whitespace && previous_whitespace {
-            return;
-        } else {
+        if !collapse_whitespace || !previous_whitespace {
             str.push(' ')
         }
+        return true;
     } else if remove_emojis && c.is_emoji() {
-        return;
+        return previous_whitespace;
+    }
+
+    let mut pushed = false;
+    decompose_compatible(c, |r| {
+        // Ignore characters outside the Basic Multilingual Plane, Control chars, etc
+        if !r.is_char_to_avoid() {
+            str.push(r);
+            pushed = true;
+        }
+    });
+
+    if pushed {
+        false
     } else {
-        decompose_compatible(c, |r| {
-            // Ignore characters outside the Basic Multilingual Plane and in the disallow_chars set
-            if r <= '\u{FFFF}' {
-                str.push(r)
-            }
-        })
+        previous_whitespace
     }
 }
 
 #[pyfunction]
-fn basic_string_clean(value: String) -> PyResult<String> {
-    Ok(custom_normalization(value, vec!['º', 'ª'], false, false)
+#[pyo3(signature = (value, allow_tab=false, allow_eol=true, collapse_whitespace=false, remove_emojis=false))]
+fn basic_string_clean(value: String, allow_tab: bool, allow_eol: bool, collapse_whitespace: bool, remove_emojis: bool) -> PyResult<String> {
+    let mut allowed_chars = vec!['º', 'ª'];
+    if allow_tab {
+        allowed_chars.push('\t');
+    }
+    if allow_eol {
+        allowed_chars.push('\n');
+        allowed_chars.push('\r');
+    }
+
+    Ok(custom_normalization(value, allowed_chars, collapse_whitespace, remove_emojis)
         .trim()
         .to_string())
 }
