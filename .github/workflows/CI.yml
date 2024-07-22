@@ -10,7 +10,7 @@ on:
     branches:
       - main
     tags:
-      - '*'
+      - "*"
   pull_request:
   workflow_dispatch:
 
@@ -20,10 +20,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-  steps:
+    steps:
       - uses: actions/checkout@v4
       - name: Build sdist
-        uses: actions-rs
+        uses: actions-rs/cargo@v1
         with:
           command: test
 
@@ -55,7 +55,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -116,7 +116,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -143,7 +143,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
