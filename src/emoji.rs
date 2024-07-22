@@ -5,7 +5,7 @@ pub const CHAR_TO_AVOID: &'static [(char, char)] = &[
     ('\u{20D0}', '\u{20FF}'), // Combining Diacritical Marks for Symbols
     ('\u{2800}', '\u{28FF}'), // Braille Patterns
     // ('\u{D800}', '\u{F8FF}'), // High Surrogates, High Private Use Surrogates, Low Surrogates and Private Use Area blocks
-    ('\u{E000}', '\u{F8FF}'), // Private Use Area blocks
+    ('\u{E000}', '\u{F8FF}'),    // Private Use Area blocks
     ('\u{10000}', '\u{10FFFF}'), // Extra planes
 ];
 

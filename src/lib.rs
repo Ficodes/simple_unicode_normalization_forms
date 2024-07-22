@@ -72,7 +72,13 @@ fn custom_character_normalization(
 
 #[pyfunction]
 #[pyo3(signature = (value, allow_tab=false, allow_eol=true, collapse_whitespace=false, remove_emojis=false))]
-fn basic_string_clean(value: String, allow_tab: bool, allow_eol: bool, collapse_whitespace: bool, remove_emojis: bool) -> PyResult<String> {
+fn basic_string_clean(
+    value: String,
+    allow_tab: bool,
+    allow_eol: bool,
+    collapse_whitespace: bool,
+    remove_emojis: bool,
+) -> PyResult<String> {
     let mut allowed_chars = vec!['º', 'ª'];
     if allow_tab {
         allowed_chars.push('\t');
@@ -82,9 +88,11 @@ fn basic_string_clean(value: String, allow_tab: bool, allow_eol: bool, collapse_
         allowed_chars.push('\r');
     }
 
-    Ok(custom_normalization(value, allowed_chars, collapse_whitespace, remove_emojis)
-        .trim()
-        .to_string())
+    Ok(
+        custom_normalization(value, allowed_chars, collapse_whitespace, remove_emojis)
+            .trim()
+            .to_string(),
+    )
 }
 
 #[pyfunction]
@@ -104,13 +112,67 @@ fn simple_unicode_normalization_forms(m: &Bound<'_, PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod tests {
     use super::remove_emojis;
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
 
     #[test]
-    fn timeit() {
-        let t1 = Instant::now();
-        remove_emojis("  a\t   name with ❤️✳️0️⃣#️⃣  #©*1   ".to_string());
-        let t2 = Instant::now();
-        println!("{:?}", t2 - t1);
+    fn correctness() {
+        let test_cases: [(&str, Option<&str>); 18] = [
+        (
+            "Este es un texto de prueba. Contiene todas las letras del alfabeto español: á, é, í, ó, ú, ü, ñ y Ñ. También incluye números (123) y otros símbolos habituales (-*#@€©) .",
+            None,
+        ),
+        (
+            "   dirección con\nvarias líneas y muchos    espacios en blanco   ",
+            Some("dirección con varias líneas y muchos espacios en blanco"),
+        ),
+        ("\u{0000}\u{0008}\u{009F}\u{009E}", Some("")),
+        ("Lui Ángel🪽🪽🪽🪽🪽🪽🫀🔂",Some("Lui Ángel")),
+        (
+            "  a\t   name with ❤️✳️0️⃣#️⃣  #©*1   ",
+            Some("a name with ❤✳0# #©*1"),
+        ),
+        ("👍🏽👍🏻👍🏿", Some("")), 
+        ("🦰..🦳", Some("..")),
+        ("𓃵𓀂𓆏𓍊𓋼𓍊🂡🀷🀉𐆔",Some("")),
+        ("𝑝𝑖𝑒𝑑𝑎𝑑 𝑖𝑛𝑚𝑎𝑐𝑢𝑙𝑎𝑑𝑎", Some("piedad inmaculada")),
+        ("𝑐𝑎𝑙𝑙𝑒 𝑞𝑢𝑒𝑣𝑒𝑑𝑜 𝑛𝑢𝑚𝑒𝑟𝑜 1 𝑐𝑎𝑠𝑎", Some("calle quevedo numero 1 casa")),
+        (
+            "Rua nossa senhora de Belém n16",
+            None,
+        ),
+        ("Vordere Zollamtsstraße 11", None), 
+        ("GLUMSØ", None), 
+        ("Bård Skolemesters vei 14, 1.", None),  
+        ("45 شارع النهضة", None),  
+        ("女子学院中学校", None), 
+        ("ｱｲｳｴｵ", Some("アイウエオ")),  
+        ("北京海洋馆", None),
+    ];
+
+        for case in test_cases {
+            let expected_result = match case.1 {
+                Some(s) => s.to_string(),
+                None => case.0.to_string(),
+            };
+            assert_eq!(expected_result, remove_emojis(case.0.to_string()).unwrap())
+        }
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn performance() {
+        let mut total: Duration = Duration::new(0, 0);
+
+        for _ in 0..10000 {
+            let t1 = Instant::now();
+            remove_emojis(
+                "𝑐𝑎𝑙𝑙𝑒 𝑞𝑢𝑒𝑣𝑒𝑑𝑜 𝑛𝑢𝑚𝑒𝑟𝑜 1 𝑐𝑎𝑠𝑎  a\t   name with ❤️✳️0️⃣#️⃣  #©*1👍🏽👍🏻👍🏿   "
+                    .to_string(),
+            );
+            let t2 = Instant::now();
+            total += t2 - t1;
+        }
+
+        println!("{:?}", total / 10000);
     }
 }
